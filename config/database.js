@@ -1,4 +1,4 @@
-const connecetion_String="mongodb+srv://majumdardibya700:VyPPvjRH9XXKueEu@cluster0.4cwur.mongodb.net/Portfollio"
+const connecetion_String=process.env.DB_SECREAT;
 
 const mongoose=require("mongoose")
 

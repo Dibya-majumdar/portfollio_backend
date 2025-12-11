@@ -41,7 +41,7 @@ app.post("/admin/signup",async (req,res)=>{
          const checkAllKeys=mustdata.every((val)=>Object.keys(req.body).includes(val));
          if(!checkAllKeys){throw new Error("pls Fill all vlaues...")}
 
-    if(key!="gourHari"){
+    if(key!=process.env.KEY){
         throw new Error("invalid credentials")
         
     }

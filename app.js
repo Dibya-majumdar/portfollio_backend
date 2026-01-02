@@ -2,6 +2,7 @@ const express=require("express")
 const connecetDb=require("./config/database")
 const adminModel=require("./DbSchema/adminSchema")
 const projectModel=require("./DbSchema/projectSchema")
+const videoModel=require("./DbSchema/videoSchema");
 const jwt=require("jsonwebtoken")
 const AuthRouter=require("./jwt/verify")
 const cookieParser = require("cookie-parser");
@@ -9,6 +10,7 @@ const validator=require("validator");
 const bcrypt=require("bcrypt");
 const cors= require("cors");
 
+require("dotenv").config();
 
 const app=express()
 
@@ -98,8 +100,20 @@ try{
  }
    
 })
+app.get("/user",AuthRouter,(req,res)=>{
+    try{
+        const user=req.user;
+        const validUser=adminModel.findOne({_id:user});
+        // console.log(validUser);
+        res.json({
+        "message":"user is there!",
+        
+    })
+    }catch(err){console.log(err.message)}
+    
 
-//working perfectly.....
+})
+//working perfectly✅
 app.post("/projects",AuthRouter,async (req,res)=>{
     try{
         const requiredKeys =["title","description","image","video","liveLink","github","usedTechs"]
@@ -111,38 +125,48 @@ app.post("/projects",AuthRouter,async (req,res)=>{
     if(!ischeck){
         throw new Error("keys not matched")
     }
-    if(title && description && image){
-    if(title.trim()==""&& description.trim()==""){
+    if(title && description&& image){
+    if(title?.trim()==""&& description?.trim()==""){
         throw new Error("title ,description should be filled")
     }
     if(image.trim()==""){image="https://i.ibb.co/xqjVkBKT/Screenshot-2025-12-10-214903.png"}
-    if(description.length>=110 || description.lengt<20 ){
-        throw new Error("write within 20 to 110 words")
+    if(description?.trim().length>=200 || description?.trim().length<20 ){
+        throw new Error("write description within 20 to 110 words")
     }
-    if( title.length>=20 ){
-        throw new Error("write within 20 words")
+    if( title?.trim().length>25 ){
+        throw new Error("write title within 25 words")
     }
 }else{
-    throw new Error("pls add image,description,title")
+    throw new Error("pls add description,title,image")
 }
-
+let videoId=null;
+if(video && video?.trim()!=""){
+  const videoData=new videoModel({
+        videoUrl:video?.trim()
+    })
+   const savedVideo = await videoData.save();
+   videoId=savedVideo._id;
+}
+  
     const final={
-        title:title,description:description,image:image,video:video,liveLink:liveLink,usedTechs:usedTechs,github:github
+        title:title?.trim(),description:description?.trim(),image:image?.trim(),video:videoId,liveLink:liveLink?.trim(),usedTechs:usedTechs,github:github?.trim()
     }
     const project_data=new projectModel(final);
     await project_data.save()
-    res.json({
+    res.status(200).json({
         "message":"data saved",
         "data":final
     })
     }catch(err){
         console.log(err.message)
-        res.send(err.message)
+        res.status(401).json({
+             "message":err.message,
+        })
     }
     
 })
 
-//done
+//done✅
 app.delete("/projects/:id",AuthRouter,async(req,res)=>{
     try{
         const unique_id=req.params.id;
@@ -167,7 +191,7 @@ res.json({
 
 })
 
-//done
+//done✅
 app.patch("/projects/:id",AuthRouter,async(req,res)=>{
     try{
         // const {title,image,video,description,liveLink,usedTechs,github}=req.body;
@@ -194,19 +218,81 @@ app.patch("/projects/:id",AuthRouter,async(req,res)=>{
     }
 });
     const {title,image,video,description,liveLink,usedTechs,github}=req.body;
+    if(title?.trim().length>25){throw new Error("title should be in 25 words ")}
+    if(image?.trim()==""){throw new Error("image should not be empty")}
     if(Object.keys(req.body).includes("description")){
-        if(description.length>=110){
-            throw new Error("description should be within 40 characters");
+        if(description?.trim().length>=200 || description?.trim().length<20 ){
+            throw new Error("description should be within 20 to 200 characters");
         }
     }
+    
+   
+    
+    //     let videoId;
+    //    let videoEdit=await projectModel.findById({_id:unique_id}).populate("video","videoUrl _id");  //if video id is not presnt or videourl is not presnt then throw error
+          
+    //             const videoEditData=await videoModel.findById({id:videoEdit.video._id});
+    //             if(!videoEditData){
+    //                 if(video && video?.trim()!=""){  
+    //                     const videoData=new videoModel({
+    //                     videoUrl:video?.trim()
+    //                     })
+    //                     const savedVideo=await videoData.save();
+    //                      videoId=savedVideo._id;
+    //                 }
+    //             }else{
+    //                 videoId=videoEdit.video._id
+    //             }
+        
+        const project = await projectModel.findById(unique_id);
+
+    if (!project) {
+      throw new Error("project not found");
+    }
+
+    let videoId = project.video;  //why proejct.video ? cause it stores id of video.
+
+
+    if (video && video.trim() !== "") {
+
+        // CASE A: video already exists → update
+        if (project.video) {
+            await videoModel.findByIdAndUpdate(
+                project.video,                            
+                { videoUrl: video.trim() }
+            );
+        }
+        // CASE B: no video exists → create
+        else {
+            const videoData = new videoModel({
+                videoUrl: video.trim()
+            });
+            const savedVideo = await videoData.save();
+            videoId = savedVideo._id;
+        }
+    }else{
+        if(project.video){
+            await videoModel.findByIdAndUpdate(
+                project.video,                            
+                { videoUrl: video.trim() }
+            );
+        }
+    }
+  
+         
+
+
+ 
+
+
      
         const data=await projectModel.findByIdAndUpdate({_id:unique_id},{
-            title:title,
-            image:image,
-            video:video,
-            description:description,
-            liveLink:liveLink,
-            github:github,
+            title:title?.trim(),   //so if tile is null or undefined then it->(.trim()) will not give error.cause on null or undefined we can not use .trim() method
+            image:image?.trim(),
+            video:videoId,
+            description:description?.trim(),
+            liveLink:liveLink?.trim(),
+            github:github?.trim(),
             usedTechs:usedTechs
 
 
@@ -215,7 +301,9 @@ app.patch("/projects/:id",AuthRouter,async(req,res)=>{
         res.json(data)
     }catch(err){
         console.log(err.message)
-        res.send(err.message)
+        res.status(401).json({
+           "message":err.message 
+        })
     }
     
 
@@ -224,24 +312,69 @@ app.patch("/projects/:id",AuthRouter,async(req,res)=>{
 
 //done
 app.get("/projectsWithoutAuth",async (req,res)=>{  //no need of authentication here 
-const data=await projectModel.find({});
+const data=await projectModel.find({}).populate("video","videoUrl _id Comments Like DisLike");
 res.json(data)
 })
-app.get("/projects",AuthRouter,async (req,res)=>{  //no need of authentication here 
-const data=await projectModel.find({});
+app.get("/projects",AuthRouter,async (req,res)=>{   
+const data=await projectModel.find({}).populate("video","videoUrl _id Comments Like DisLike");
 res.json(data)
 })
 
 //newly done
-app.get("/projects/:id",AuthRouter,async (req,res)=>{  //no need of authentication here 
+app.get("/projects/:id",AuthRouter,async (req,res)=>{ 
     const{ id}=req.params;
-const data=await projectModel.find({_id:id});
+const data=await projectModel.find({_id:id}).populate("video","videoUrl _id Comments Like DisLike");
+res.send(data)
+})
+app.get("/projectsWithoutAuth/:id",async (req,res)=>{ 
+    const{ id}=req.params;
+const data=await projectModel.find({_id:id}).populate("video","videoUrl _id Comments Like DisLike");
 res.send(data)
 })
 
+app.post("/logout",AuthRouter,(req,res)=>{
+res.cookie("token",null,{expires:new Date (Date.now())})
+res.json("logout");
+})
 
 
+app.get("/video/:id",async(req,res)=>{
+    try{
+        const {id}=req.params;
+        const videoDaata=await videoModel.findById(id);
+        if(!videoDaata){
+            throw new Error("video is not present right now !");
+        }
+        res.status(200).json(videoDaata);
+    }catch(err){
+        res.status(401).json(err.message);
+    }
+   
+})
 
+app.post("/video/comments/:id",async(req,res)=>{
+    try{
+        console.log("hi")   ;
+        const {id}=req.params; 
+        const {comment}=req.body;
+            if(comment?.trim()==""){
+                throw new Error("empty can not be submitted")
+            }
+            const data=await videoModel.findById(id);
+            if(!data){
+                throw new Error("video not exist!");
+            }
+            
+            const commentAdded=await videoModel.findByIdAndUpdate(id,
+           {
+            $push: { Comments: comment.trim() }
+            },{ new: true })
+            res.status(200).json(commentAdded);
+        }catch(err){
+            res.status(401).json(err.message);
+        }
+    
+})
 app.use("/",(req,res)=>{
     res.send("lets statrt")
 })

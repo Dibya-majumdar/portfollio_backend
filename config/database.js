@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const connecetion_String=process.env.DB_SECREAT;
 
 const mongoose=require("mongoose")

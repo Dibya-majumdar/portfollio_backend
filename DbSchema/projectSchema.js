@@ -17,7 +17,9 @@ const projectSchema=mongoose.Schema({
      
     },
     video:{
-        type:String
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"video",
+        
     },
     github:{
         type:String,

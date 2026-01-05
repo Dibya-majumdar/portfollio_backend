@@ -92,7 +92,11 @@ try{
     if(!pass){ throw new Error("invalid credentials")}
   //add jwt token here
   const token=await jwt.sign({_id:isemail._id},"portfollio")
-  res.cookie("token",token)
+  res.cookie("token",token,{ //for getting cokkie in https.
+    httpOnly: true,
+  secure: true,        // REQUIRED on HTTPS
+  sameSite: "none", 
+  })
     res.json({
         "message":"sucessfully loged in",
         "data":isemail

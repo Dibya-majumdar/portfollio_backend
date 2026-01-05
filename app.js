@@ -9,12 +9,13 @@ const cookieParser = require("cookie-parser");
 const validator=require("validator");
 const bcrypt=require("bcrypt");
 const cors= require("cors");
+require("dotenv").config();
 
 require("dotenv").config();
 
 const app=express()
 
-app.use(cors({origin:"http://localhost:3001",credentials:true}))
+app.use(cors({origin:process.env.FRONTEND_KEY,credentials:true}))
 
 app.use(express.json());//for this stuff i stuck for more than 30 min
 

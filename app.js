@@ -9,6 +9,7 @@ const cookieParser = require("cookie-parser");
 const validator=require("validator");
 const bcrypt=require("bcrypt");
 const cors= require("cors");
+const messageModal = require("./DbSchema/messageSchema");
 require("dotenv").config();
 
 require("dotenv").config();
@@ -375,6 +376,41 @@ app.post("/video/comments/:id",async(req,res)=>{
             res.status(401).json(err.message);
         }
     
+})
+app.post("/visitor/message",async(req,res)=>{
+    try{
+        let {userName,emailId,message}=req.body;
+        const mustdata=["userName","emailId","message"];
+        const checkAllKeys=mustdata.every((val)=>Object.keys(req.body).includes(val));
+         if(!checkAllKeys){throw new Error("pls Fill all vlaues...")}
+        if(userName.trim()==""){
+        throw new Error("Enter your name !")
+        }
+        if(emailId.trim()==""){
+        throw new Error("Enter your gmailId !")
+        }
+        if(!validator.isEmail(emailId)){throw new Error("Enter a valid gmail")}
+        if(message.trim()==""){
+        throw new Error("Enter your message !")
+        }
+       userName=userName.trim();
+       emailId=emailId.trim();
+       message=message.trim();
+        const messageData=new messageModal({userName:userName,emailId:emailId,message:message})
+        const data=await messageData.save();
+        res.status(200).json(data);
+    }catch(err){
+        res.status(400).json(err.message);
+    }
+
+})
+app.get("/visitor/message",AuthRouter,async(req,res)=>{
+    try{
+        const data=await messageModal.find({});
+        res.status(200).json(data);
+    }catch(err){
+        res.status(400).json({"message":err.message})
+    }
 })
 app.use("/",(req,res)=>{
     res.send("lets statrt")
